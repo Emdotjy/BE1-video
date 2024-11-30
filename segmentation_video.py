@@ -188,8 +188,15 @@ def detection_transition(similarites, silent):
     for i in range(len(frame_transition)):
         if frame_transition[i]:
             frame_trasition_numbers.append(i)
+            #on supprime les éventuelles frames de transitions succéssives
+            j = 1
+            while j +i <= len(frame_transition) and frame_transition[i+j]:
+                frame_transition[i+j] = False
+                j+=1
             if not silent:     
                 afficher_frame_avec_timecode(video, i, fps=24)
+
+
     return frame_trasition_numbers
         
     #'''

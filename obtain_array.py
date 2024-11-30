@@ -1,44 +1,27 @@
-# importing libraries
 import cv2
-import numpy as np
-
-def obtain_array(file):
-
-    # Create a VideoCapture object and read from input file
-    cap = cv2.VideoCapture(file)
+def convertir_video_en_array(video_path):
+    cap = cv2.VideoCapture(video_path)
     
-    # Check if camera opened successfully
-    if (cap.isOpened()== False): 
-        print("Error opening video  file")
+    if not cap.isOpened():
+        print("Erreur : Impossible d'ouvrir la vidéo.")
+        return
     
-    Video = []
-    i=0
-    # Read until video is completed
-    while(cap.isOpened()):
-            
-        # Capture frame-by-frame
+    ret, previous_frame = cap.read()
+    if not ret:
+        print("Erreur lors de la lecture de la première frame.")
+        cap.release()
+        return
+    
+    video = []
+    while True:
+        # Lire la frame suivante
         ret, frame = cap.read()
-        i+= 1
-        if i ==10:
-            break
-        if ret == True:
-
-            Video.append(frame)
-
-            # Press Q on keyboard to  exit
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                break
-        
-        # Break the loop
-        else: 
+        if not ret:
             break
         
-        # When everything done, release 
-        # the video capture object
-    cap.release()
+
+        video.append(frame)
     
-    # Closes all the frames
-    cv2.destroyAllWindows()
-    return np.array(Video)
-
+    cap.release()
+    return video
 

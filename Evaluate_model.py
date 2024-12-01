@@ -1,4 +1,4 @@
-from simon2 import *
+from segmentation_video import *
 
 import csv
 
@@ -45,6 +45,7 @@ if __name__ == "__main__":
     for label in labels:
         if not label in transition_frames_numbers:
             FN+=1
+    print('TPfdsqfdsqf')        
 
 
 

@@ -121,27 +121,21 @@ def afficher_frame_avec_timecode(video, frame_number, fps=24):
 
 def convertir_video_en_array(video_path):
     cap = cv2.VideoCapture(video_path)
-    
     if not cap.isOpened():
         print("Erreur : Impossible d'ouvrir la vidéo.")
         return
-    
     ret, previous_frame = cap.read()
     if not ret:
         print("Erreur lors de la lecture de la première frame.")
         cap.release()
         return
-    
     video = []
     while True:
         # Lire la frame suivante
         ret, frame = cap.read()
         if not ret:
             break
-        
-
         video.append(frame)
-    
     cap.release()
     return video
 
@@ -187,7 +181,7 @@ def detection_transition(similarites, silent):
     print(f"on a détécté {sum(frame_transition)} frames de transition")
     for i in range(len(frame_transition)):
         if frame_transition[i]:
-            frame_trasition_numbers.append(i)
+            frame_trasition_numbers.append(i+2) # On ajoute +2 pour coller à la vérité terrain (décalage de 2 frames entre ce qu'on détecte et la vérité)
             if not silent:     
                 afficher_frame_avec_timecode(video, i, fps=24)
     return frame_trasition_numbers
@@ -231,5 +225,5 @@ if __name__ == "__main__":
     #detection_transition(similarite_couleur+similarite_forme)
     simil_couleur_normal = (similarite_couleur-np.mean(similarite_couleur))/np.std(similarite_couleur)
     simil_forme_normal = (similarite_forme-np.mean(similarite_forme))/np.std(similarite_forme)
-    silent = False
+    silent = False # Si je mets True, les images ne s'afficheront pas
     detection_transition(simil_couleur_normal+simil_forme_normal, silent)

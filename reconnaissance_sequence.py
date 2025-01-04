@@ -5,12 +5,14 @@ import os
 import json
 import random
 from segmentation_video import *
-import matplotlib.pyplot as plt 
+
+
 
 def standardize_frame(frame,min_values,max_values):
     # Normalisation : (frame - min) / (max - min) * 255
     standardized = (frame - min_values) / (max_values - min_values) * 255
     return np.clip(standardized, 0, 255).astype(np.uint8)  
+
 def standardize_video_color(video_frames):
 
     stacked_frames = np.stack(video_frames, axis=0)
@@ -26,6 +28,23 @@ def standardize_video_color(video_frames):
 def is_black(frame):
     return (np.mean(frame) <= 5)
 
+def preprocess_image(image, target_size=(224, 224)):
+    """
+    Preprocess image by resizing and normalizing
+    
+    Args:
+        image: Input image as numpy array
+        target_size: Tuple of (height, width) to resize to
+        
+    Returns:
+        Preprocessed image
+    """
+    # Resize image to standard size
+    resized = resize(image, target_size, anti_aliasing=True, preserve_range=True)
+    
+    # Convert to float and normalize to [0,1]
+    normalized = resized.astype(float) / 255.0
+    return normalized
 
 
 
@@ -38,12 +57,11 @@ def segmentation_spot_pub(video):
         if not black_frames[i] and black_frames[i+1]:
             j = 1
             while i+j <len(black_frames) and  black_frames[i+j]:
-                j+=1
-            print(j)    
+                j+=1 
             if j <= 16 and j>=7:
                 debuts.append(i+j+1)
                 fins.append(i+1)
-    print(debuts)            
+
     # On enlève la dernière valeur de début qui correspond à la fin de séquence pub 
     debuts.pop()          
 
@@ -79,7 +97,6 @@ def get_rpz_images(pub,silent):
         if pub_transitions[i] >= len(pub):
             pub_transitions.pop(-1)
     pub_transitions.append(len(pub)-1)
-    print(pub_transitions)
     for i in range(len(pub_transitions)-1):
 
         images_rpz.append( np.mean(pub[pub_transitions[i]:pub_transitions[i+1]],axis=0).astype(np.uint8))
@@ -133,7 +150,68 @@ def argmin(d):
     min_val = min(d.values())
     return [k for k in d if d[k] == min_val][0]
 
+def compare_images(img1, img2):
+    # Get dimensions
+    h1, w1 = img1.shape[:2]
+    h2, w2 = img2.shape[:2]
+        
+    # Resize larger image to smaller size
+    if h1 * w1 > h2 * w2:
+        img1_resized = cv2.resize(img1, (w2, h2))
+        return np.linalg.norm(img1_resized - img2) / np.sqrt(h2 * w2)
+    else:
+        img2_resized = cv2.resize(img2, (w1, h1))
+        return np.linalg.norm(img1 - img2_resized) / np.sqrt(h1 * w1)
 
+
+def compute_elastic_distance(seq1, seq2, max_warp=3):
+    """
+    Compute elastic distance between two sequences of images with limited warping
+    """
+    n, m = len(seq1), len(seq2)
+    # Initialize cost matrix
+    cost_matrix = np.full((n + 1, m + 1), np.inf)
+    cost_matrix[0, 0] = 0
+    
+    # Fill cost matrix
+    for i in range(1, n + 1):
+        # Limit warping window
+        start_j = max(1, i - max_warp)
+        end_j = min(m + 1, i + max_warp + 1)
+        
+        for j in range(start_j, end_j):
+            cost = compare_images(seq1[i-1], seq2[j-1])
+            # Allow for different warping paths
+            cost_matrix[i, j] = cost + min(
+                cost_matrix[i-1, j],    # insertion
+                cost_matrix[i, j-1],    # deletion
+                cost_matrix[i-1, j-1]   # match
+            )
+    
+    # Return normalized distance
+    return cost_matrix[n, m] / (n + m)
+
+
+def compute_best_fit_distance(seq1, seq2):
+    """
+    Compute the best-fit distance between two sequences of images.
+
+    Parameters:
+        seq1: List of images (first sequence)
+        seq2: List of images (second sequence)
+
+    Returns:
+        Mean of minimum distances for each image in seq1 compared to seq2.
+    """
+    return np.mean([
+        min(
+            [
+                compare_images(img1, img2) for img2 in seq2
+            ]
+        )
+        for img1 in seq1
+    ])
+    
 def recognise_pub_in_bdd(video):
     frame_list = random.choices(video,k= 5)
     bdd_paths = os.listdir('./bdd')
@@ -143,7 +221,7 @@ def recognise_pub_in_bdd(video):
         with open('./bdd/'+path+'/metadata.json', 'r') as file:
             length[path] = json.load(file)['pub_length']    
         #Si les deux pubs on à-peu près la même longueur, à 60 frames près
-        if abs(length[path] -len(video)) <= 6000000 :  
+        if abs(length[path] -len(video)) <= 120 :  
             length_compatible_pub.append('./bdd/'+path )
 
 
@@ -156,11 +234,8 @@ def recognise_pub_in_bdd(video):
         rpz_images_bdd = [np.array(cv2.imread(pub_path+'/'+path)) for path in rpz_images_bdd_paths]
 
         #On a chargé les marqueurs de la pub dans la bdd stockées dans pub_path, maintenant on les compares au marqueur de la pub à identifier
-        distance_to_pub = np.mean([
-                min(
-                    [np.linalg.norm(rpz_image_test - rpz_image_bdd) / np.sqrt(rpz_image_test.size)
-                    for rpz_image_bdd in rpz_images_bdd ]) 
-            for rpz_image_test in rpz_images_test ])
+        #distance_to_pub = compute_best_fit_distance(rpz_images_test, rpz_images_bdd)
+        distance_to_pub = compute_elastic_distance(rpz_images_test, rpz_images_bdd,5)      
         distances_to_pubs_in_bdd[pub_path] = (distance_to_pub)
     best_fit_path = argmin(distances_to_pubs_in_bdd)
     print(distances_to_pubs_in_bdd)

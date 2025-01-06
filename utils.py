@@ -17,7 +17,7 @@ def play_video_frames(video_frames, fps=24):
     Notes:
     ------
     - La fenêtre d'affichage peut être fermée en appuyant sur la touche 'q'.
-    - Assurez-vous que les frames dans 'video_frames' sont compatibles avec OpenCV (par exemple, format BGR).
+    - Il faut s'assurer que que les frames dans 'video_frames' sont compatibles avec OpenCV (par exemple, format BGR).
     """
     for frame in video_frames:
         # Afficher chaque frame
@@ -52,7 +52,7 @@ def obtenir_timecode(frame_number, fps=24):
     Notes:
     ------
     - Le calcul est basé sur la formule : 'time_in_seconds = frame_number / fps'.
-    - Assurez-vous que 'fps' est un entier positif pour éviter une division par zéro.
+    - Il faut s'assurer que que 'fps' est un entier positif pour éviter une division par zéro.
 
     Example:
     --------
@@ -89,7 +89,7 @@ def afficher_frame_avec_timecode(video, frame_number, fps=24):
     ------
     - La fenêtre d'affichage est fermée lorsque l'utilisateur appuie sur une touche.
     - Le timecode est affiché en secondes, avec deux décimales.
-    - Assurez-vous que 'frame_number' est un index valide dans la liste 'video'.
+    - Il faut s'assurer que que 'frame_number' est un index valide dans la liste 'video'.
 
     """
     frame = video[frame_number]
@@ -118,7 +118,7 @@ def afficher_frame(frame_number):
 
     Notes:
     ------
-    - Assurez-vous que 'frame_number' est un index valide dans la liste 'video'.
+    - Il faut s'assurer que que 'frame_number' est un index valide dans la liste 'video'.
     """
     print(f"Frame numéro : {frame_number}")
 
@@ -146,7 +146,7 @@ def convertir_video_en_array(video_path):
     Notes:
     ------
     - La fonction utilise OpenCV pour lire la vidéo.
-    - Assurez-vous que le chemin de la vidéo est valide et que le fichier est lisible.
+    - Il faut s'assurer que que le chemin de la vidéo est valide et que le fichier est lisible.
     - Les frames sont stockées dans l'ordre d'apparition dans la vidéo.
 
     """
@@ -199,7 +199,7 @@ def play_video(file):
     ------
     - La fenêtre d'affichage peut être fermée en appuyant sur la touche 'q'.
     - La lecture s'arrête automatiquement après 10 frames pour des raisons de démonstration.
-    - Assurez-vous que le chemin du fichier est valide et que le fichier est lisible.
+    - Il faut s'assurer que que le chemin du fichier est valide et que le fichier est lisible.
 
     Example:
     --------

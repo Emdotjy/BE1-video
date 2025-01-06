@@ -113,8 +113,8 @@ def detection_transition(similarites, silent):
 
     # calcul moyenne et écart type glissant
     longueur_frame = 100
-    moyenne_similarites=np.zeros(len(similarites))
-    ecart_type_similarites=np.zeros(len(similarites))
+    moyenne_similarites=np.zeros(len(similarites-longueur_frame))
+    ecart_type_similarites=np.zeros(len(similarites-longueur_frame))
     for i in range(len(similarites)-longueur_frame):
         moyenne_similarites[i] = np.mean(similarites[i:i+longueur_frame])
         ecart_type_similarites[i] = np.std(similarites[i:i+longueur_frame])

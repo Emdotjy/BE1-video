@@ -5,7 +5,11 @@ import os
 import json
 import random
 from segmentation_video import *
-
+from utils import afficher_frame_avec_timecode
+from utils import play_video
+from utils import convertir_video_en_array
+from utils import obtenir_timecode
+from utils import play_video
 
 
 def standardize_frame(frame,min_values,max_values):
@@ -14,16 +18,24 @@ def standardize_frame(frame,min_values,max_values):
     return np.clip(standardized, 0, 255).astype(np.uint8)  
 
 def standardize_video_color(video_frames):
-
+    if len(video_frames) == 0:
+        print("Warning: No video frames provided.")
+        return video_frames  # Return an empty list
     stacked_frames = np.stack(video_frames, axis=0)
     
-    # Trouver les valeurs min et max pour chaque canal RGB
-    min_values = min([np.mean(frame ) for frame in stacked_frames])
-    max_values = max([np.mean(frame ) for frame in stacked_frames])
+    # Compute min and max values across all frames
+    min_values = min([np.mean(frame) for frame in stacked_frames])
+    max_values = max([np.mean(frame) for frame in stacked_frames])
 
-    standardized_frames = [standardize_frame(frame,min_values,max_values) for frame in video_frames]
+    # Safeguard against division by zero
+    if min_values == max_values:
+        print("Warning: min and max values are identical, skipping normalization.")
+        return video_frames  # Return frames unprocessed if no range exists
+
+    standardized_frames = [standardize_frame(frame, min_values, max_values) for frame in video_frames]
 
     return standardized_frames
+
 
 def is_black(frame):
     return (np.mean(frame) <= 5)
@@ -45,8 +57,6 @@ def preprocess_image(image, target_size=(224, 224)):
     # Convert to float and normalize to [0,1]
     normalized = resized.astype(float) / 255.0
     return normalized
-
-
 
 def segmentation_spot_pub(video):
     black_frames = [is_black(frame) for frame in video]
@@ -76,8 +86,8 @@ def segmentation_spot_pub(video):
 
 def detection_transitions_from_pub(video):
     similarite_couleur = calculer_similarite_couleur(video)
-    video_contour = calculate_contour_frames(video)
-    similarite_forme = calculate_similarity(video_contour)
+    video_contour = tracer_contours(video)
+    similarite_forme = calculer_similarite_forme(video_contour)
 
     #play_video(video_contour)
     
@@ -105,7 +115,6 @@ def get_rpz_images(pub,silent):
             cv2.waitKey(0)  # Attendre que l'utilisateur appuie sur une touche
             cv2.destroyAllWindows()
     return images_rpz
-
 
 def add_pub_to_bdd(pub):
 
@@ -144,7 +153,6 @@ def add_pub_to_bdd(pub):
         json.dump(metadata, file, indent=4)
     print(f"Metadata saved: {metadata_path}")
 
-
 def argmin(d):
     if not d: return None
     min_val = min(d.values())
@@ -162,7 +170,6 @@ def compare_images(img1, img2):
     else:
         img2_resized = cv2.resize(img2, (w1, h1))
         return np.linalg.norm(img1 - img2_resized) / np.sqrt(h1 * w1)
-
 
 def compute_elastic_distance(seq1, seq2, max_warp=3):
     """
@@ -190,7 +197,6 @@ def compute_elastic_distance(seq1, seq2, max_warp=3):
     
     # Return normalized distance
     return cost_matrix[n, m] / (n + m)
-
 
 def compute_best_fit_distance(seq1, seq2):
     """
@@ -234,8 +240,8 @@ def recognise_pub_in_bdd(video):
         rpz_images_bdd = [np.array(cv2.imread(pub_path+'/'+path)) for path in rpz_images_bdd_paths]
 
         #On a chargé les marqueurs de la pub dans la bdd stockées dans pub_path, maintenant on les compares au marqueur de la pub à identifier
-        #distance_to_pub = compute_best_fit_distance(rpz_images_test, rpz_images_bdd)
-        distance_to_pub = compute_elastic_distance(rpz_images_test, rpz_images_bdd,5)      
+        distance_to_pub = compute_best_fit_distance(rpz_images_test, rpz_images_bdd)
+        #distance_to_pub = compute_elastic_distance(rpz_images_test, rpz_images_bdd,5)      
         distances_to_pubs_in_bdd[pub_path] = (distance_to_pub)
     best_fit_path = argmin(distances_to_pubs_in_bdd)
     print(distances_to_pubs_in_bdd)
@@ -255,10 +261,10 @@ if __name__ == "__main__":
 
     
     # à décommenter une fois pour crééer la base de données, puis à recommenter
-    #for pub in pub_list:
-    #    add_pub_to_bdd(pub)
+    for pub in pub_list:
+        add_pub_to_bdd(pub)
 
-    video_test_path = 'Pub_C+_352_288_2_.mp4'    
+    video_test_path = 'Pub_C+_176_144.mp4'    
     video_test = standardize_video_color(convertir_video_en_array(video_test_path))
     pub_list_test = segmentation_spot_pub(video_test)
 

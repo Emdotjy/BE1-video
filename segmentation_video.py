@@ -5,35 +5,113 @@ from utils import *
 from utils import afficher_frame_avec_timecode
 from utils import convertir_video_en_array
 
+def standardize_frame(frame,min_values,max_values):
+    # Normalisation : (frame - min) / (max - min) * 255
+    standardized = (frame - min_values) / (max_values - min_values) * 255
+    return np.clip(standardized, 0, 255).astype(np.uint8)  
+
+def standardize_video_color(video_frames):
+    if len(video_frames) == 0:
+        print("Warning: No video frames provided.")
+        return video_frames  # Return an empty list
+    stacked_frames = np.stack(video_frames, axis=0)
+    
+    # Compute min and max values across all frames
+    min_values = min([np.mean(frame) for frame in stacked_frames])
+    max_values = max([np.mean(frame) for frame in stacked_frames])
+
+    # Safeguard against division by zero
+    if min_values == max_values:
+        print("Warning: min and max values are identical, skipping normalization.")
+        return video_frames  # Return frames unprocessed if no range exists
+
+    standardized_frames = [standardize_frame(frame, min_values, max_values) for frame in video_frames]
+
+    return standardized_frames
+
 def is_black(frame):
+    """
+    Vérifie si une frame vidéo est presque entièrement noire.
+
+    Cette fonction calcule la moyenne des intensités des pixels dans la frame.
+    Si la moyenne est inférieure ou égale à 5, la frame est considérée comme noire.
+
+    Parameters:
+    -----------
+    frame : numpy.ndarray
+        Une frame vidéo représentée sous forme d'un tableau NumPy, où chaque pixel est une intensité
+        ou une combinaison de canaux (par exemple, BGR ou RGB).
+
+    Returns:
+    --------
+    bool
+        Retourne `True` si la frame est considérée comme noire, sinon `False`. 
+    """
     return (np.mean(frame) <= 5)
 
 
 def segmentation_spot_pub(video):
+    """
+    Segmente les séquences publicitaires dans une vidéo en fonction des frames noires.
+
+    Cette fonction identifie les segments publicitaires dans une vidéo en détectant 
+    les transitions entre des séquences noires et des séquences de contenu vidéo. 
+    Elle utilise des critères spécifiques pour déterminer les débuts et les fins 
+    des séquences publicitaires.
+
+    Parameters:
+    -----------
+    video : list of numpy.ndarray
+        Liste de frames vidéo, où chaque frame est une image représentée sous forme 
+        de tableau NumPy.
+
+    Returns:
+    --------
+    list of list of numpy.ndarray
+        Liste des séquences publicitaires, où chaque séquence est une sous-liste 
+        des frames correspondant à une publicité.
+
+    Notes:
+    ------
+    - La détection repose sur la fonction `is_black` pour identifier les frames noires.
+    - Une séquence est considérée comme publicitaire si elle est encadrée par 
+      une période de frames noires de 7 à 16 frames.
+    - Les frames de début et de fin de chaque séquence sont ajustées pour exclure 
+      les séquences complètement noires.
+    """
+    # Détecter les frames noires dans la vidéo
     black_frames = [is_black(frame) for frame in video]
-    debuts = [0]
-    fins = []
+    debuts = [0]  # Liste des indices de début des séquences publicitaires
+    fins = []     # Liste des indices de fin des séquences publicitaires
 
-    for i in range(len(black_frames)-1):
-        if not black_frames[i] and black_frames[i+1]:
+    # Parcourir les frames pour détecter les transitions entre noir et contenu
+    for i in range(len(black_frames) - 1):
+        if not black_frames[i] and black_frames[i + 1]:  # Transition vers une séquence noire
             j = 1
-            while i+j <len(black_frames) and  black_frames[i+j]:
-                j+=1 
-            if j <= 16 and j>=7:
-                debuts.append(i+j+1)
-                fins.append(i+1)
+            while i + j < len(black_frames) and black_frames[i + j]:  # Compter les frames noires
+                j += 1
+            # Vérifier si la durée des frames noires est entre 7 et 16 (critère pour une pub)
+            if 7 <= j <= 16:
+                debuts.append(i + j + 1)  # Début de la prochaine séquence après les frames noires
+                fins.append(i + 1)       # Fin de la séquence précédente
 
-    # On enlève la dernière valeur de début qui correspond à la fin de séquence pub 
+    # Supprimer la dernière valeur de début (fin de la séquence de pub)
     debuts.pop()          
 
-    #on de même, on enlève le début
+    # Supprimer les débuts inutiles (première séquence noire)
     debuts.pop(0)
     fins.pop(0)
+
+    # Extraire les séquences publicitaires à partir des indices de début et de fin
     pub_list = [video[debuts[i]:fins[i]] for i in range(len(debuts))]    
+
+    # Afficher les informations sur les séquences détectées
     for num_pub, pub in enumerate(pub_list):
         print(f"Sequence pub n°{num_pub+1}, démarre à {debuts[num_pub]} et se termine à {fins[num_pub]}")
+    print(f"On a détecté {len(pub_list)} publicités.")
 
     return pub_list
+
 
 # Fonction pour calculer l'histogramme d'une frame
 def calculer_histogramme(frame):
@@ -202,18 +280,21 @@ def trace_similarites(similarites):
 
 
 if __name__ == "__main__":
-    video_path = 'Pub_C+_352_288_1.mp4'  # Chemin de la vidéo
+    video_path = 'pub/Pub_C+_352_288_1.mp4'  # Chemin de la vidéo
     video = convertir_video_en_array(video_path)
-    print(f"la vidéo est de longueur {len(video)} et les frames sont de shape {video[0].shape}")
+    print(f"La vidéo est de longueur {len(video)} et les frames sont de shape {video[0].shape}")
+    video_standart = standardize_video_color(video)
+    segmentation_spot_pub(video_standart)
+
+    
     similarite_couleur = calculer_similarite_couleur(video)
     video_contour = tracer_contours(video)
     similarite_forme = calculer_similarite_forme(video_contour)
-    
-
     #play_video(video_contour)
     #detection_transition(similarite_couleur+similarite_forme)
     simil_couleur_normal = (similarite_couleur-np.mean(similarite_couleur))/np.std(similarite_couleur)
     simil_forme_normal = (similarite_forme-np.mean(similarite_forme))/np.std(similarite_forme)
     silent = False
     detection_transition(simil_couleur_normal+simil_forme_normal, silent)
-    trace_similarites(simil_couleur_normal+simil_forme_normal)
+    #trace_similarites(simil_couleur_normal+simil_forme_normal)
+    

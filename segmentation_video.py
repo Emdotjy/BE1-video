@@ -3,12 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils import *
 from utils import afficher_frame_avec_timecode
-from utils import play_video
 from utils import convertir_video_en_array
-from utils import obtenir_timecode
-from utils import play_video
-
-
 
 def is_black(frame):
     return (np.mean(frame) <= 5)

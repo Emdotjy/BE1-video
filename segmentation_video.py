@@ -1,7 +1,12 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-
+from utils import *
+from utils import afficher_frame_avec_timecode
+from utils import play_video
+from utils import convertir_video_en_array
+from utils import obtenir_timecode
+from utils import play_video
 # Fonction pour calculer l'histogramme d'une frame
 def calculer_histogramme(frame):
     hist_b = cv2.calcHist([frame], [0], None, [256], [0, 256])
@@ -9,7 +14,7 @@ def calculer_histogramme(frame):
     hist_r = cv2.calcHist([frame], [2], None, [256], [0, 256])
     return hist_b, hist_g, hist_r
 
-# Fonction pour calculer la similarité entre deux frames
+# Fonction pour calculer la similarité couleur entre deux frames
 def calculer_similarite_frames_couleur(frame1, frame2):
     # Calculer les histogrammes des deux frames
     hist_b1, hist_g1, hist_r1 = calculer_histogramme(frame1)
@@ -24,7 +29,8 @@ def calculer_similarite_frames_couleur(frame1, frame2):
     similarite_moyenne = (similarite_b + similarite_g + similarite_r) / 3
     return similarite_moyenne
 
-def calculate_contour_frames(video_frames):
+
+def tracer_contours(video_frames):
 
     # Noyau pour épaissir les contours
     #kernel = np.ones((5, 5), np.uint8)
@@ -52,7 +58,7 @@ def calculate_contour_frames(video_frames):
     return contour_frames
 
 
-def calculate_similarity(video_contour_frames):
+def calculer_similarite_forme(video_contour_frames):
     """
     Calcule la similarité entre chaque paire de frames consécutives dans une vidéo pré-traitée (liste de frames avec contours épaissis).
     
@@ -80,70 +86,6 @@ def calculate_similarity(video_contour_frames):
         similarities.append(correlation)
     
     return similarities
-
-
-def play_video(video_frames, fps=24):
-
-    for frame in video_frames:
-        # Afficher chaque frame
-        cv2.imshow('Contours épaissis', frame)
-        
-        # Attendre selon le FPS
-        if cv2.waitKey(int(1000 / fps)) & 0xFF == ord('q'):
-            break
-
-    cv2.destroyAllWindows()
-
-
-'''
-# Fonction pour afficher une frame spécifique et son timecode
-def afficher_frame_avec_timecode(video, frame_number, fps=24):
-    # Afficher la frame
-    plt.imshow(cv2.cvtColor(video[frame_number], cv2.COLOR_BGR2RGB))
-    plt.axis('off')  # Désactiver les axes
-    plt.show()
-    # Calculer et afficher le timecode
-    timecode = obtenir_timecode(frame_number, fps)
-    print(f"Frame numéro : {frame_number}, Timecode : {timecode:.2f} secondes")
-'''
-def afficher_frame_avec_timecode(video, frame_number, fps=24):
-    frame = video[frame_number]
-    cv2.imshow(f'Frame {frame_number}', frame)
-    cv2.waitKey(0)  # Attendre que l'utilisateur appuie sur une touche
-    cv2.destroyAllWindows()  # Fermer la fenêtre d'affichage
-
-    # Calculer et afficher le timecode
-    timecode = obtenir_timecode(frame_number, fps)
-    print(f"Frame numéro : {frame_number}, Timecode : {timecode:.2f} secondes")
-
-
-
-
-def convertir_video_en_array(video_path):
-    cap = cv2.VideoCapture(video_path)
-    
-    if not cap.isOpened():
-        print("Erreur : Impossible d'ouvrir la vidéo.")
-        return
-    
-    ret, previous_frame = cap.read()
-    if not ret:
-        print("Erreur lors de la lecture de la première frame.")
-        cap.release()
-        return
-    
-    video = []
-    while True:
-        # Lire la frame suivante
-        ret, frame = cap.read()
-        if not ret:
-            break
-        
-
-        video.append(frame)
-    
-    cap.release()
-    return video
 
 # Fonction pour analyser la vidéo et calculer les similarités entre les frames successives
 def calculer_similarite_couleur(video):
@@ -216,14 +158,6 @@ def detection_transition(similarites, silent):
     print(f"Écart type des similarités : {ecart_type_similarites:.4f}")
     print(f"Différence (Moyenne - Écart type) : {difference_moyenne_ecart_type:.4f}")
     '''
-    
-
-# Fonction pour convertir le numéro de frame en timecode (en secondes)
-def obtenir_timecode(frame_number, fps=24):
-    # Calculer le temps en secondes
-    time_in_seconds = frame_number / fps
-    return time_in_seconds
-
 
 
 if __name__ == "__main__":
@@ -231,8 +165,8 @@ if __name__ == "__main__":
     video = convertir_video_en_array(video_path)
     print(f"la vidéo est de longueur {len(video)} et les frames sont de shape {video[0].shape}")
     similarite_couleur = calculer_similarite_couleur(video)
-    video_contour = calculate_contour_frames(video)
-    similarite_forme = calculate_similarity(video_contour)
+    video_contour = tracer_contours(video)
+    similarite_forme = calculer_similarite_forme(video_contour)
 
     #play_video(video_contour)
     #detection_transition(similarite_couleur+similarite_forme)

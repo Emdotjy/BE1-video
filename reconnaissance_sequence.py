@@ -1,5 +1,5 @@
 import cv2
-from obtain_array import *
+from utils import *
 import numpy as np
 import os
 import json

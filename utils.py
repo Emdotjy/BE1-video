@@ -1,8 +1,6 @@
 import cv2
 
-
-
-def play_video(video_frames, fps=24):
+def play_video_frames(video_frames, fps=24):
     """
     Joue une séquence vidéo à partir d'une liste de frames avec un nombre d'images par seconde (FPS) spécifié.
 
@@ -71,80 +69,157 @@ def afficher_frame_avec_timecode(video, frame_number, fps=24):
 
 
 def convertir_video_en_array(video_path):
+    """
+    Convertit une vidéo en un tableau de frames (images).
 
+    Cette fonction lit une vidéo à partir du chemin spécifié et extrait chaque frame 
+    pour les stocker dans une liste. Chaque frame est une image représentée sous forme 
+    de tableau NumPy.
+
+    Parameters:
+    -----------
+    video_path : str
+        Chemin vers le fichier vidéo à convertir.
+
+    Returns:
+    --------
+    list of numpy.ndarray
+        Une liste contenant toutes les frames de la vidéo sous forme de tableaux NumPy.
+        Si une erreur survient, la fonction retourne `None`.
+
+    Notes:
+    ------
+    - La fonction utilise OpenCV pour lire la vidéo.
+    - Assurez-vous que le chemin de la vidéo est valide et que le fichier est lisible.
+    - Les frames sont stockées dans l'ordre d'apparition dans la vidéo.
+
+    """
+    # Ouvrir le fichier vidéo
     cap = cv2.VideoCapture(video_path)
 
+    # Vérifier si la vidéo a été ouverte correctement
     if not cap.isOpened():
         print("Erreur : Impossible d'ouvrir la vidéo.")
         return
     
+    # Lire la première frame pour initialiser
     ret, previous_frame = cap.read()
     if not ret:
         print("Erreur lors de la lecture de la première frame.")
-        cap.release()
+        cap.release()  # Libérer les ressources
         return
     
+    # Liste pour stocker les frames de la vidéo
     video = []
     while True:
         # Lire la frame suivante
         ret, frame = cap.read()
-        if not ret:
+        if not ret:  # Arrêter si aucune frame n'est lue (fin de la vidéo)
             break
         
-
+        # Ajouter la frame à la liste
         video.append(frame)
     
+    # Libérer les ressources vidéo
     cap.release()
+
+    # Retourner la liste des frames
     return video
 
 
-# Fonction pour convertir le numéro de frame en timecode (en secondes)
+
 def obtenir_timecode(frame_number, fps=24):
+    """
+    Convertit un numéro de frame en un timecode exprimé en secondes.
+
+    Cette fonction calcule le temps correspondant à un numéro de frame donné,
+    en supposant un nombre d'images par seconde (FPS) constant.
+
+    Parameters:
+    -----------
+    frame_number : int
+        Numéro de la frame à convertir.
+    fps : int, optional
+        Nombre d'images par seconde de la vidéo. Par défaut, la valeur est 24.
+
+    Returns:
+    --------
+    float
+        Le timecode en secondes correspondant au numéro de frame.
+
+    Notes:
+    ------
+    - Le calcul est basé sur la formule : `time_in_seconds = frame_number / fps`.
+    - Assurez-vous que `fps` est un entier positif pour éviter une division par zéro.
+
+    Example:
+    --------
+    >>> obtenir_timecode(48, fps=24)
+    2.0
+    >>> obtenir_timecode(120, fps=30)
+    4.0
+    """
     # Calculer le temps en secondes
     time_in_seconds = frame_number / fps
     return time_in_seconds
 
-# importing libraries
-import cv2
-import numpy as np
 
 def play_video(file):
+    """
+    Lit et affiche les frames d'un fichier vidéo.
 
-    # Create a VideoCapture object and read from input file
+    Cette fonction utilise OpenCV pour lire un fichier vidéo, afficher chaque frame dans une fenêtre, 
+    et s'arrête automatiquement après 10 frames ou si l'utilisateur appuie sur la touche 'q'. 
+
+    Parameters:
+    -----------
+    file : str
+        Chemin vers le fichier vidéo à lire.
+
+    Notes:
+    ------
+    - La fenêtre d'affichage peut être fermée en appuyant sur la touche 'q'.
+    - La lecture s'arrête automatiquement après 10 frames pour des raisons de démonstration.
+    - Assurez-vous que le chemin du fichier est valide et que le fichier est lisible.
+
+    Example:
+    --------
+    >>> play_video("chemin/vers/video.mp4")
+    """
+    # Crée un objet VideoCapture pour lire le fichier vidéo
     cap = cv2.VideoCapture(file)
     
-    # Check if camera opened successfully
-    if (cap.isOpened()== False): 
-        print("Error opening video  file")
-    i = 0
-    # Read until video is completed
-    while(cap.isOpened()):
-            
-        # Capture frame-by-frame
+    # Vérifie si le fichier vidéo a été ouvert avec succès
+    if not cap.isOpened(): 
+        print("Erreur : Impossible d'ouvrir le fichier vidéo.")
+        return
+
+    i = 0  # Compteur pour limiter à 10 frames
+
+    # Boucle jusqu'à ce que la vidéo soit terminée ou que l'utilisateur arrête
+    while cap.isOpened():
+        # Capture chaque frame de la vidéo
         ret, frame = cap.read()
-        i+= 1
-        if i ==10:
+        i += 1
+        
+        # Arrêter la lecture après 10 frames
+        if i == 10:
             break
 
-        if ret == True:
-        
-            # Display the resulting frame
+        # Si une frame est lue avec succès
+        if ret:
+            # Affiche la frame dans une fenêtre
             cv2.imshow('Frame', frame)
         
-            # Press Q on keyboard to  exit
+            # Quitte la lecture si 'q' est pressé
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
-        
-        # Break the loop
-        else: 
+        else:
+            # Si aucune frame n'est lue, termine la boucle
             break
-        
-        # When everything done, release 
-        # the video capture object
+
+    # Libère l'objet VideoCapture
     cap.release()
-    
-    # Closes all the frames
+
+    # Ferme toutes les fenêtres d'affichage
     cv2.destroyAllWindows()
-
-
-

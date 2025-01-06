@@ -7,6 +7,39 @@ from utils import play_video
 from utils import convertir_video_en_array
 from utils import obtenir_timecode
 from utils import play_video
+
+
+
+def is_black(frame):
+    return (np.mean(frame) <= 5)
+
+
+def segmentation_spot_pub(video):
+    black_frames = [is_black(frame) for frame in video]
+    debuts = [0]
+    fins = []
+
+    for i in range(len(black_frames)-1):
+        if not black_frames[i] and black_frames[i+1]:
+            j = 1
+            while i+j <len(black_frames) and  black_frames[i+j]:
+                j+=1 
+            if j <= 16 and j>=7:
+                debuts.append(i+j+1)
+                fins.append(i+1)
+
+    # On enlève la dernière valeur de début qui correspond à la fin de séquence pub 
+    debuts.pop()          
+
+    #on de même, on enlève le début
+    debuts.pop(0)
+    fins.pop(0)
+    pub_list = [video[debuts[i]:fins[i]] for i in range(len(debuts))]    
+    for num_pub, pub in enumerate(pub_list):
+        print(f"Sequence pub n°{num_pub+1}, démarre à {debuts[num_pub]} et se termine à {fins[num_pub]}")
+
+    return pub_list
+
 # Fonction pour calculer l'histogramme d'une frame
 def calculer_histogramme(frame):
     hist_b = cv2.calcHist([frame], [0], None, [256], [0, 256])
@@ -109,13 +142,19 @@ def calculer_similarite_couleur(video):
     return similarites
 
 
-def detection_transition(similarites, silent): 
 
+
+
+
+
+
+def detection_transition(similarites, silent): 
+    
     # calcul moyenne et écart type glissant
     longueur_frame = 100
     moyenne_similarites=np.zeros(len(similarites-longueur_frame))
     ecart_type_similarites=np.zeros(len(similarites-longueur_frame))
-    for i in range(len(similarites)-longueur_frame):
+    for i in range(len(similarites)):
         moyenne_similarites[i] = np.mean(similarites[i:i+longueur_frame])
         ecart_type_similarites[i] = np.std(similarites[i:i+longueur_frame])
         
@@ -123,13 +162,13 @@ def detection_transition(similarites, silent):
     seuil = 3
     difference_moyenne_ecart_type = moyenne_similarites - seuil*ecart_type_similarites
     
-    #'''
+    
     frame_transition = similarites < difference_moyenne_ecart_type
-    frame_trasition_numbers =[]
+    frame_transition_numbers =[]
     print(f"on a détécté {sum(frame_transition)} frames de transition")
     for i in range(len(frame_transition)):
         if frame_transition[i]:
-            frame_trasition_numbers.append(i)
+            frame_transition_numbers.append(i)
             #on supprime les éventuelles frames de transitions succéssives
             j = 1
             while j +i <= len(frame_transition) and frame_transition[i+j]:
@@ -138,12 +177,16 @@ def detection_transition(similarites, silent):
             if not silent:     
                 afficher_frame_avec_timecode(video, i, fps=24)
 
+    print(f"Moyenne des similarités : {moyenne_similarites:.4f}")
+    print(f"Écart type des similarités : {ecart_type_similarites:.4f}")
+    print(f"Différence (Moyenne - Écart type) : {difference_moyenne_ecart_type:.4f}")
+    
 
-    return frame_trasition_numbers
-        
-    #'''
+    return moyenne_similarites, ecart_type_similarites, difference_moyenne_ecart_type
 
-    '''
+
+def trace_similarites(similarites):
+    moyenne_similarites, ecart_type_similarites, difference_moyenne_ecart_type = detection_transition(similarites, silent=False)
     # Tracer les similarités
     plt.plot(similarites, label='Similarité entre frames')
     plt.plot(moyenne_similarites, color='r', linestyle='--', label='Moyenne des similarités')
@@ -157,7 +200,10 @@ def detection_transition(similarites, silent):
     print(f"Moyenne des similarités : {moyenne_similarites:.4f}")
     print(f"Écart type des similarités : {ecart_type_similarites:.4f}")
     print(f"Différence (Moyenne - Écart type) : {difference_moyenne_ecart_type:.4f}")
-    '''
+
+
+
+
 
 
 if __name__ == "__main__":
@@ -167,6 +213,7 @@ if __name__ == "__main__":
     similarite_couleur = calculer_similarite_couleur(video)
     video_contour = tracer_contours(video)
     similarite_forme = calculer_similarite_forme(video_contour)
+    
 
     #play_video(video_contour)
     #detection_transition(similarite_couleur+similarite_forme)
@@ -174,3 +221,4 @@ if __name__ == "__main__":
     simil_forme_normal = (similarite_forme-np.mean(similarite_forme))/np.std(similarite_forme)
     silent = False
     detection_transition(simil_couleur_normal+simil_forme_normal, silent)
+    trace_similarites(simil_couleur_normal+simil_forme_normal)

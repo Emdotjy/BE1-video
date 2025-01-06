@@ -30,6 +30,41 @@ def play_video_frames(video_frames, fps=24):
     cv2.destroyAllWindows()
 
 
+def obtenir_timecode(frame_number, fps=24):
+    """
+    Convertit un numéro de frame en un timecode exprimé en secondes.
+
+    Cette fonction calcule le temps correspondant à un numéro de frame donné,
+    en supposant un nombre d'images par seconde (FPS) constant.
+
+    Parameters:
+    -----------
+    frame_number : int
+        Numéro de la frame à convertir.
+    fps : int, optional
+        Nombre d'images par seconde de la vidéo. Par défaut, la valeur est 24.
+
+    Returns:
+    --------
+    float
+        Le timecode en secondes correspondant au numéro de frame.
+
+    Notes:
+    ------
+    - Le calcul est basé sur la formule : `time_in_seconds = frame_number / fps`.
+    - Assurez-vous que `fps` est un entier positif pour éviter une division par zéro.
+
+    Example:
+    --------
+    >>> obtenir_timecode(48, fps=24)
+    2.0
+    >>> obtenir_timecode(120, fps=30)
+    4.0
+    """
+    # Calculer le temps en secondes
+    time_in_seconds = frame_number / fps
+    return time_in_seconds
+
 
 def afficher_frame_avec_timecode(video, frame_number, fps=24):
     """
@@ -65,6 +100,27 @@ def afficher_frame_avec_timecode(video, frame_number, fps=24):
     # Calculer et afficher le timecode
     timecode = obtenir_timecode(frame_number, fps)
     print(f"Frame numéro : {frame_number}, Timecode : {timecode:.2f} secondes")
+
+
+def afficher_frame(frame_number):
+    """
+    Affiche une frame spécifique d'une vidéo
+
+    Cette fonction utilise OpenCV pour afficher une frame donnée d'une vidéo.
+
+    Parameters:
+    -----------
+    video : list of numpy.ndarray
+        Liste représentant les frames de la vidéo, où chaque frame est une image sous 
+        forme de tableau NumPy.
+    frame_number : int
+        Numéro de la frame à afficher. Doit être un index valide dans la liste `video`.
+
+    Notes:
+    ------
+    - Assurez-vous que `frame_number` est un index valide dans la liste `video`.
+    """
+    print(f"Frame numéro : {frame_number}")
 
 
 
@@ -125,43 +181,6 @@ def convertir_video_en_array(video_path):
 
     # Retourner la liste des frames
     return video
-
-
-
-def obtenir_timecode(frame_number, fps=24):
-    """
-    Convertit un numéro de frame en un timecode exprimé en secondes.
-
-    Cette fonction calcule le temps correspondant à un numéro de frame donné,
-    en supposant un nombre d'images par seconde (FPS) constant.
-
-    Parameters:
-    -----------
-    frame_number : int
-        Numéro de la frame à convertir.
-    fps : int, optional
-        Nombre d'images par seconde de la vidéo. Par défaut, la valeur est 24.
-
-    Returns:
-    --------
-    float
-        Le timecode en secondes correspondant au numéro de frame.
-
-    Notes:
-    ------
-    - Le calcul est basé sur la formule : `time_in_seconds = frame_number / fps`.
-    - Assurez-vous que `fps` est un entier positif pour éviter une division par zéro.
-
-    Example:
-    --------
-    >>> obtenir_timecode(48, fps=24)
-    2.0
-    >>> obtenir_timecode(120, fps=30)
-    4.0
-    """
-    # Calculer le temps en secondes
-    time_in_seconds = frame_number / fps
-    return time_in_seconds
 
 
 def play_video(file):

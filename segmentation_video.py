@@ -238,26 +238,63 @@ def detection_transition(similarites, silent):
     
     frame_transition = similarites < difference_moyenne_ecart_type
     frame_transition_numbers =[]
-    print(f"on a détécté {sum(frame_transition)} frames de transition")
+    print(f"On a détécté {sum(frame_transition)} frames de transition")
     for i in range(len(frame_transition)):
         if frame_transition[i]:
             frame_transition_numbers.append(i)
-            #on supprime les éventuelles frames de transitions succéssives
+            #on supprime les éventuelles frames de transitions successives
             j = 1
             while j +i <= len(frame_transition) and frame_transition[i+j]:
                 frame_transition[i+j] = False
                 j+=1
             if not silent:     
-                afficher_frame_avec_timecode(video, i, fps=24)
-
-    print(f"Moyenne des similarités : {moyenne_similarites:.4f}")
-    print(f"Écart type des similarités : {ecart_type_similarites:.4f}")
-    print(f"Différence (Moyenne - Écart type) : {difference_moyenne_ecart_type:.4f}")
+                #afficher_frame_avec_timecode(video, i, fps=24)
+                pass
+    
+    print(frame_transition_numbers)
+    #print(f"Moyenne des similarités : {moyenne_similarites:.4f}")
+    #print(f"Écart type des similarités : {ecart_type_similarites:.4f}")
+    #print(f"Différence (Moyenne - Écart type) : {difference_moyenne_ecart_type:.4f}")
     
 
-    return moyenne_similarites, ecart_type_similarites, difference_moyenne_ecart_type
+    return frame_transition
 
 
+def detection_transition_list(similarites): 
+    
+    # calcul moyenne et écart type glissant
+    longueur_frame = 100
+    moyenne_similarites=np.zeros(len(similarites-longueur_frame))
+    ecart_type_similarites=np.zeros(len(similarites-longueur_frame))
+    for i in range(len(similarites)):
+        moyenne_similarites[i] = np.mean(similarites[i:i+longueur_frame])
+        ecart_type_similarites[i] = np.std(similarites[i:i+longueur_frame])
+        
+    # Différence entre la moyenne et l'écart type
+    seuil = 3.5
+    difference_moyenne_ecart_type = moyenne_similarites - seuil*ecart_type_similarites
+    
+    
+    frame_transition = similarites < difference_moyenne_ecart_type
+    frame_transition_numbers =[]
+    epsilon = 2
+    print(f"On a détécté {sum(frame_transition)} frames de transition")
+    for i in range(len(frame_transition)):
+        if frame_transition[i]:
+            frame_transition_numbers.append(i+epsilon)
+            #on supprime les éventuelles frames de transitions successives
+            j = 1
+            while j +i <= len(frame_transition) and frame_transition[i+j]:
+                frame_transition[i+j] = False
+                j+=1
+    print(frame_transition_numbers)
+    return frame_transition_numbers
+
+
+
+
+
+'''
 def trace_similarites(similarites):
     moyenne_similarites, ecart_type_similarites, difference_moyenne_ecart_type = detection_transition(similarites, silent=False)
     # Tracer les similarités
@@ -273,16 +310,40 @@ def trace_similarites(similarites):
     print(f"Moyenne des similarités : {moyenne_similarites:.4f}")
     print(f"Écart type des similarités : {ecart_type_similarites:.4f}")
     print(f"Différence (Moyenne - Écart type) : {difference_moyenne_ecart_type:.4f}")
+'''
 
 
-# Vérité Terrain Vérité_terrain_Pub_C+_352_288_1_
-nombre_changement_plans = 77
-frames_changement_plans = [0, 52, 142, 163, 187, 200, 221, 248, 256, 268, 307, 485, 526, 561, 582, 
+
+def comparison(similarites):
+    # Vérité Terrain de Pub_C+_352_288_1_
+    nombre_changement_plans_verite = 77
+    frames_changement_plans_verite = [0, 42, 52, 142, 163, 187, 200, 221, 248, 256, 268, 307, 485, 526, 561, 582, 
                            595, 615, 635, 664, 690, 705, 720, 746, 821, 853, 903, 956, 975, 998, 
                            1027, 1062, 1099, 1120, 1144, 1177, 1220, 1255, 1293, 1335, 1367, 1444, 
                            1582, 1655, 1735, 1812, 1871, 1895, 1909, 1960, 2016, 2106, 2147, 2184,
                            2243, 2487, 2526, 2617, 2688, 2775, 2808, 2829, 2858, 2881, 2917, 2934,
                            2962, 2978, 3011, 3086, 3179, 3287]
+    frames_changement_plans_par_notre_code = detection_transition_list(similarites)
+    
+    # Convertir en ensembles pour faciliter les comparaisons
+    verite_set = set(frames_changement_plans_verite)
+    detections_set = set(frames_changement_plans_par_notre_code)
+
+    # Calcul des métriques
+    true_positives = len(verite_set.intersection(detections_set))  # Changements correctement détectés
+    false_positives = len(detections_set - verite_set)  # Détections incorrectes
+    false_negatives = len(verite_set - detections_set)  # Changements manqués
+
+    # Calcul de la précision, du rappel et du F1-score
+    precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+
+    # Résultats
+    print(f"Précision: {precision:.2f}")
+    print(f"Rappel: {recall:.2f}")
+    print(f"F1-score: {f1:.2f}")
+
 
 
 if __name__ == "__main__":
@@ -301,6 +362,7 @@ if __name__ == "__main__":
     simil_couleur_normal = (similarite_couleur-np.mean(similarite_couleur))/np.std(similarite_couleur)
     simil_forme_normal = (similarite_forme-np.mean(similarite_forme))/np.std(similarite_forme)
     silent = False
-    detection_transition(simil_couleur_normal+simil_forme_normal, silent)
+    detection_transition_list(simil_couleur_normal+simil_forme_normal)
+    comparison(simil_couleur_normal+simil_forme_normal)
     #trace_similarites(simil_couleur_normal+simil_forme_normal)
     

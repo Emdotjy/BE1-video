@@ -17,7 +17,7 @@ def play_video_frames(video_frames, fps=24):
     Notes:
     ------
     - La fenêtre d'affichage peut être fermée en appuyant sur la touche 'q'.
-    - Assurez-vous que les frames dans `video_frames` sont compatibles avec OpenCV (par exemple, format BGR).
+    - Assurez-vous que les frames dans 'video_frames' sont compatibles avec OpenCV (par exemple, format BGR).
     """
     for frame in video_frames:
         # Afficher chaque frame
@@ -51,8 +51,8 @@ def obtenir_timecode(frame_number, fps=24):
 
     Notes:
     ------
-    - Le calcul est basé sur la formule : `time_in_seconds = frame_number / fps`.
-    - Assurez-vous que `fps` est un entier positif pour éviter une division par zéro.
+    - Le calcul est basé sur la formule : 'time_in_seconds = frame_number / fps'.
+    - Assurez-vous que 'fps' est un entier positif pour éviter une division par zéro.
 
     Example:
     --------
@@ -80,7 +80,7 @@ def afficher_frame_avec_timecode(video, frame_number, fps=24):
         Liste représentant les frames de la vidéo, où chaque frame est une image sous 
         forme de tableau NumPy.
     frame_number : int
-        Numéro de la frame à afficher. Doit être un index valide dans la liste `video`.
+        Numéro de la frame à afficher. Doit être un index valide dans la liste 'video'.
     fps : int, optional
         Nombre d'images par seconde de la vidéo, utilisé pour calculer le timecode.
         La valeur par défaut est 24.
@@ -89,7 +89,7 @@ def afficher_frame_avec_timecode(video, frame_number, fps=24):
     ------
     - La fenêtre d'affichage est fermée lorsque l'utilisateur appuie sur une touche.
     - Le timecode est affiché en secondes, avec deux décimales.
-    - Assurez-vous que `frame_number` est un index valide dans la liste `video`.
+    - Assurez-vous que 'frame_number' est un index valide dans la liste 'video'.
 
     """
     frame = video[frame_number]
@@ -114,11 +114,11 @@ def afficher_frame(frame_number):
         Liste représentant les frames de la vidéo, où chaque frame est une image sous 
         forme de tableau NumPy.
     frame_number : int
-        Numéro de la frame à afficher. Doit être un index valide dans la liste `video`.
+        Numéro de la frame à afficher. Doit être un index valide dans la liste 'video'.
 
     Notes:
     ------
-    - Assurez-vous que `frame_number` est un index valide dans la liste `video`.
+    - Assurez-vous que 'frame_number' est un index valide dans la liste 'video'.
     """
     print(f"Frame numéro : {frame_number}")
 
@@ -141,7 +141,7 @@ def convertir_video_en_array(video_path):
     --------
     list of numpy.ndarray
         Une liste contenant toutes les frames de la vidéo sous forme de tableaux NumPy.
-        Si une erreur survient, la fonction retourne `None`.
+        Si une erreur survient, la fonction retourne 'None'.
 
     Notes:
     ------

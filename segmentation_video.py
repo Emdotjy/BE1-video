@@ -45,7 +45,7 @@ def is_black(frame):
     Returns:
     --------
     bool
-        Retourne `True` si la frame est considérée comme noire, sinon `False`. 
+        Retourne 'True' si la frame est considérée comme noire, sinon 'False'. 
     """
     return (np.mean(frame) <= 5)
 
@@ -73,7 +73,7 @@ def segmentation_spot_pub(video):
 
     Notes:
     ------
-    - La détection repose sur la fonction `is_black` pour identifier les frames noires.
+    - La détection repose sur la fonction 'is_black' pour identifier les frames noires.
     - Une séquence est considérée comme publicitaire si elle est encadrée par 
       une période de frames noires de 7 à 16 frames.
     - Les frames de début et de fin de chaque séquence sont ajustées pour exclure 

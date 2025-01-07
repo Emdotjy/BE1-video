@@ -510,7 +510,7 @@ def detection_transition(similarites, silent):
         ecart_type_similarites[i] = np.std(similarites[i:i+longueur_frame])
         
     # Différence entre la moyenne et l'écart type
-    seuil = 3
+    seuil = 3.2
     difference_moyenne_ecart_type = moyenne_similarites - seuil*ecart_type_similarites
     
     

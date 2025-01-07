@@ -549,7 +549,7 @@ def detection_transition_list(similarites):
         ecart_type_similarites[i] = np.std(similarites[i:i+longueur_frame])
         
     # Différence entre la moyenne et l'écart type
-    seuil = 3.5
+    seuil = 3.2
     difference_moyenne_ecart_type = moyenne_similarites - seuil*ecart_type_similarites
     
     
@@ -568,57 +568,50 @@ def detection_transition_list(similarites):
     print(frame_transition_numbers)
     return frame_transition_numbers
 
-
-
-
 #region trace_similarites
-'''
+
 def trace_similarites(similarites):
     """
     Trace les similarités entre les frames successives d'une vidéo et affiche des statistiques.
 
     Cette fonction génère un graphique montrant les similarités entre frames successives,
     ainsi que les courbes représentant la moyenne des similarités et la différence entre
-    la moyenne et l'écart type. Elle calcule également et affiche dans la console des
-    statistiques sur les similarités.
+    la moyenne et l'écart type.
 
     Paramètres :
     ------------
     similarites : numpy.ndarray
         Un tableau contenant les similarités calculées entre les frames successives.
 
-    Return :
+    Retourne :
     ---------
     None
-        Cette fonction n'a pas de retour explicite. Elle affiche un graphique et imprime
-        des statistiques dans la console.
-
-    Notes :
-    -------
-    - La fonction utilise une méthode externe `detection_transition` pour calculer la moyenne,
-      l'écart type, et la courbe moyenne - écart type.
-    - Assurez-vous que `detection_transition` est bien définie et retourne les valeurs attendues.
-
-    Exemple :
-    ---------
-    >>> similarites = np.random.rand(1000)  # Exemple de similarités simulées
-    >>> trace_similarites(similarites)
-    Moyenne des similarités : 0.5043
-    Écart type des similarités : 0.2971
-    Différence (Moyenne - Écart type) : 0.2072
     """
-    # Calcul des statistiques via la fonction `detection_transition`
-    moyenne_similarites, ecart_type_similarites, difference_moyenne_ecart_type = detection_transition(similarites, silent=False)
+    # Longueur de la fenêtre glissante
+    longueur_frame = 100
+
+    # Initialisation des tableaux pour la moyenne et l'écart type
+    moyenne_similarites = np.zeros(len(similarites) - longueur_frame)
+    ecart_type_similarites = np.zeros(len(similarites) - longueur_frame)
+
+    # Calcul de la moyenne et de l'écart type glissant
+    for i in range(len(moyenne_similarites)):
+        moyenne_similarites[i] = np.mean(similarites[i:i+longueur_frame])
+        ecart_type_similarites[i] = np.std(similarites[i:i+longueur_frame])
+
+    # Différence entre la moyenne et l'écart type
+    seuil = 3
+    difference_moyenne_ecart_type = moyenne_similarites - seuil * ecart_type_similarites
 
     # Tracer les similarités entre frames
-    plt.plot(similarites, label='Similarité entre frames')
-    
-    # Tracer la moyenne des similarités
-    plt.axhline(y=moyenne_similarites, color='r', linestyle='--', label='Moyenne des similarités')
-    
+    plt.plot(similarites, label='Similarité entre frames', color='b')
+
+    # Tracer la courbe de la moyenne des similarités
+    plt.plot(range(len(moyenne_similarites)), moyenne_similarites, color='r', linestyle='--', label='Moyenne des similarités')
+
     # Tracer la courbe moyenne - écart type
-    plt.axhline(y=difference_moyenne_ecart_type, color='g', linestyle='--', label='Moyenne - Écart type')
-    
+    plt.plot(range(len(moyenne_similarites)), difference_moyenne_ecart_type, color='g', linestyle='--', label='Moyenne - Écart type')
+
     # Ajouter des détails au graphique
     plt.xlabel('Numéro de frame')  # Légende de l'axe des x
     plt.ylabel('Similarité')  # Légende de l'axe des y
@@ -627,11 +620,12 @@ def trace_similarites(similarites):
     plt.show()  # Afficher le graphique
 
     # Affichage des statistiques dans la console
-    print(f"Moyenne des similarités : {moyenne_similarites:.4f}")
-    print(f"Écart type des similarités : {ecart_type_similarites:.4f}")
-    print(f"Différence (Moyenne - Écart type) : {difference_moyenne_ecart_type:.4f}")
+    print(f"Moyenne des similarités : {moyenne_similarites.mean():.2f}")
+    print(f"Écart type des similarités : {ecart_type_similarites.mean():.2f}")
+    print(f"Différence (Moyenne - Écart type) : {difference_moyenne_ecart_type.mean():.2f}")
 
-'''
+
+
 
 #region comparison
 def comparison(similarites):
@@ -747,9 +741,8 @@ if __name__ == "__main__":
     video_path = 'pub/Pub_C+_352_288_1.mp4'  # Chemin de la vidéo
     #video = convertir_video_en_array(video_path)
     #visualiser_detection_forme(video_path)
-    # Exemple d'utilisation
-    lire_et_tracer_contours(video_path)
-    '''
+    #lire_et_tracer_contours(video_path)
+    
     video = convertir_video_en_array(video_path)
     print(f"La vidéo est de longueur {len(video)} et les frames sont de shape {video[0].shape}")
     video_standart = standardize_video_color(video)
@@ -760,12 +753,13 @@ if __name__ == "__main__":
     video_contour = tracer_contours(video)
     similarite_forme = calculer_similarite_forme(video_contour)
     #play_video(video_contour)
-    #detection_transition(similarite_couleur+similarite_forme)
+    silent = False
+    detection_transition(similarite_couleur+similarite_forme, silent)
     simil_couleur_normal = (similarite_couleur-np.mean(similarite_couleur))/np.std(similarite_couleur)
     simil_forme_normal = (similarite_forme-np.mean(similarite_forme))/np.std(similarite_forme)
-    silent = False
-    detection_transition_list(simil_couleur_normal+simil_forme_normal)
-    comparison(simil_couleur_normal+simil_forme_normal)
-    #trace_similarites(simil_couleur_normal+simil_forme_normal)
-    '''
+    
+    #detection_transition_list(simil_couleur_normal+simil_forme_normal)
+    #comparison(simil_couleur_normal+simil_forme_normal)
+    trace_similarites(simil_couleur_normal+simil_forme_normal)
+    
     

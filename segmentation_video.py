@@ -342,7 +342,7 @@ def tracer_contours(video_frames):
     >>>     cv2.imwrite(f"contour_frame_{i}.jpg", contour_frame)
     """
     # Définir la taille du noyau et créer un noyau gaussien pour épaissir les contours
-    kernel_size = 15  # Taille du noyau ajustable pour un épaississement variable
+    kernel_size = 2  # Taille du noyau ajustable pour un épaississement variable
     gradient_kernel = cv2.getGaussianKernel(kernel_size, sigma=5)
     gradient_kernel = gradient_kernel * gradient_kernel.T  # Transformation en noyau 2D
 
@@ -450,6 +450,54 @@ def calculer_similarite_couleur(video):
     
     return similarites
 
+#region visualiser_detection_forme
+def visualiser_detection_forme(video_path):
+    """
+    Visualise la détection de contours sur une vidéo en utilisant la fonction tracer_contours.
+
+    Paramètres :
+    ------------
+    video_path : str
+        Chemin de la vidéo à traiter.
+
+    Retourne :
+    ---------
+    None
+    """
+    # Charger la vidéo et la convertir en array
+    video = convertir_video_en_array(video_path)
+    
+    # Appliquer la détection de contours avec la fonction existante
+    video_contours = tracer_contours(video)
+    
+    # Initialiser une fenêtre pour afficher les résultats
+    cv2.namedWindow('Détection de contours', cv2.WINDOW_NORMAL)
+    
+    for i, frame in enumerate(video_contours):
+        # Convertir les contours détectés (niveaux de gris) en une image couleur pour l'affichage
+        display_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+        
+        # Ajouter un texte indiquant le numéro de la frame
+        cv2.putText(display_frame, f"Frame: {i+1}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                    1, (0, 255, 0), 2, cv2.LINE_AA)
+        
+        # Afficher la frame dans la fenêtre
+        cv2.imshow('Détection de contours', display_frame)
+        
+        # Attendre 25 ms entre les frames (simule environ 40 FPS)
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break  # Quitter la boucle si 'q' est pressé
+    
+    # Libérer les ressources et fermer la fenêtre
+    cv2.destroyAllWindows()
+
+
+
+
+
+
+
+
 #region detection_transition
 def detection_transition(similarites, silent): 
     
@@ -526,20 +574,63 @@ def detection_transition_list(similarites):
 #region trace_similarites
 '''
 def trace_similarites(similarites):
+    """
+    Trace les similarités entre les frames successives d'une vidéo et affiche des statistiques.
+
+    Cette fonction génère un graphique montrant les similarités entre frames successives,
+    ainsi que les courbes représentant la moyenne des similarités et la différence entre
+    la moyenne et l'écart type. Elle calcule également et affiche dans la console des
+    statistiques sur les similarités.
+
+    Paramètres :
+    ------------
+    similarites : numpy.ndarray
+        Un tableau contenant les similarités calculées entre les frames successives.
+
+    Return :
+    ---------
+    None
+        Cette fonction n'a pas de retour explicite. Elle affiche un graphique et imprime
+        des statistiques dans la console.
+
+    Notes :
+    -------
+    - La fonction utilise une méthode externe `detection_transition` pour calculer la moyenne,
+      l'écart type, et la courbe moyenne - écart type.
+    - Assurez-vous que `detection_transition` est bien définie et retourne les valeurs attendues.
+
+    Exemple :
+    ---------
+    >>> similarites = np.random.rand(1000)  # Exemple de similarités simulées
+    >>> trace_similarites(similarites)
+    Moyenne des similarités : 0.5043
+    Écart type des similarités : 0.2971
+    Différence (Moyenne - Écart type) : 0.2072
+    """
+    # Calcul des statistiques via la fonction `detection_transition`
     moyenne_similarites, ecart_type_similarites, difference_moyenne_ecart_type = detection_transition(similarites, silent=False)
-    # Tracer les similarités
+
+    # Tracer les similarités entre frames
     plt.plot(similarites, label='Similarité entre frames')
-    plt.plot(moyenne_similarites, color='r', linestyle='--', label='Moyenne des similarités')
-    plt.plot(difference_moyenne_ecart_type, color='g', linestyle='--', label='Moyenne - Écart type')
-    plt.xlabel('Numéro de frame')
-    plt.ylabel('Similarité')
-    plt.title('Similarité entre frames successives dans la vidéo')
-    plt.legend()
-    plt.show()
     
+    # Tracer la moyenne des similarités
+    plt.axhline(y=moyenne_similarites, color='r', linestyle='--', label='Moyenne des similarités')
+    
+    # Tracer la courbe moyenne - écart type
+    plt.axhline(y=difference_moyenne_ecart_type, color='g', linestyle='--', label='Moyenne - Écart type')
+    
+    # Ajouter des détails au graphique
+    plt.xlabel('Numéro de frame')  # Légende de l'axe des x
+    plt.ylabel('Similarité')  # Légende de l'axe des y
+    plt.title('Similarité entre frames successives dans la vidéo')  # Titre du graphique
+    plt.legend()  # Afficher la légende des courbes
+    plt.show()  # Afficher le graphique
+
+    # Affichage des statistiques dans la console
     print(f"Moyenne des similarités : {moyenne_similarites:.4f}")
     print(f"Écart type des similarités : {ecart_type_similarites:.4f}")
     print(f"Différence (Moyenne - Écart type) : {difference_moyenne_ecart_type:.4f}")
+
 '''
 
 #region comparison
@@ -608,11 +699,57 @@ def comparison(similarites):
     print(f"Rappel: {recall:.2f}")
     print(f"F1-score: {f1:.2f}")
 
+def lire_et_tracer_contours(video_path):
+    """
+    Lit une vidéo, applique la détection de contours avec la fonction `tracer_contours`, 
+    et affiche les frames avec contours détectés en temps réel.
+
+    Paramètres :
+    ------------
+    video_path : str
+        Chemin de la vidéo à traiter.
+    """
+    # Ouvrir la vidéo avec OpenCV
+    cap = cv2.VideoCapture(video_path)
+    
+    if not cap.isOpened():
+        print("Erreur : Impossible de lire la vidéo.")
+        return
+
+    # Lire les frames une par une
+    while True:
+        ret, frame = cap.read()
+        if not ret:  # Fin de la vidéo
+            break
+        
+        # Appliquer la détection de contours directement sur la frame
+        contours = tracer_contours([frame])[0]
+        
+        # Convertir les contours en image couleur pour affichage
+        display_frame = cv2.cvtColor(contours, cv2.COLOR_GRAY2BGR)
+        
+        # Afficher la frame avec contours
+        cv2.imshow('Contours détectés', display_frame)
+        
+        # Attendre 25ms (40 FPS) ou quitter si 'q' est pressé
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break
+
+    # Libérer les ressources
+    cap.release()
+    cv2.destroyAllWindows()
+
+
 
 
 #region main
 if __name__ == "__main__":
     video_path = 'pub/Pub_C+_352_288_1.mp4'  # Chemin de la vidéo
+    #video = convertir_video_en_array(video_path)
+    #visualiser_detection_forme(video_path)
+    # Exemple d'utilisation
+    lire_et_tracer_contours(video_path)
+    '''
     video = convertir_video_en_array(video_path)
     print(f"La vidéo est de longueur {len(video)} et les frames sont de shape {video[0].shape}")
     video_standart = standardize_video_color(video)
@@ -630,4 +767,5 @@ if __name__ == "__main__":
     detection_transition_list(simil_couleur_normal+simil_forme_normal)
     comparison(simil_couleur_normal+simil_forme_normal)
     #trace_similarites(simil_couleur_normal+simil_forme_normal)
+    '''
     

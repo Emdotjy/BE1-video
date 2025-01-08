@@ -187,14 +187,21 @@ def segmentation_spot_pub(video):
                 fins.append(i + 1)       # Fin de la séquence précédente
 
     # Supprimer la dernière valeur de début (fin de la séquence de pub)
-    debuts.pop()          
+    if debuts:
+        debuts.pop()        
 
     # Supprimer les débuts inutiles (première séquence noire)
-    debuts.pop(0)
-    fins.pop(0)
+    if debuts:
+        debuts.pop(0)
+    if fins:
+        fins.pop(0)
 
     # Extraire les séquences publicitaires à partir des indices de début et de fin
-    pub_list = [video[debuts[i]:fins[i]] for i in range(len(debuts))]    
+    if len(debuts) != len(fins):  # Vérification pour éviter des erreurs
+        print("Erreur : Le nombre de débuts et de fins ne correspond pas.")
+        return []
+
+    pub_list = [video[debuts[i]:fins[i]] for i in range(len(debuts))] 
 
     # Afficher les informations sur les séquences détectées
     for num_pub, pub in enumerate(pub_list):
@@ -693,6 +700,7 @@ def comparison(similarites):
     print(f"Rappel: {recall:.2f}")
     print(f"F1-score: {f1:.2f}")
 
+#region lire_et_tracer_contours
 def lire_et_tracer_contours(video_path):
     """
     Lit une vidéo, applique la détection de contours avec la fonction `tracer_contours`, 
@@ -734,32 +742,131 @@ def lire_et_tracer_contours(video_path):
     cv2.destroyAllWindows()
 
 
+#region analyser_video_et_tracer_similarites
+# Fonction pour analyser la vidéo et calculer les similarités entre les frames successives
+def analyser_video_et_tracer_similarites(video_path):
+    """
+    Analyse une vidéo pour calculer les similarités entre les frames successives et trace les résultats.
+
+    Cette fonction lit une vidéo, calcule la similarité entre chaque frame successive,
+    calcule les statistiques glissantes (moyenne et écart-type) des similarités, 
+    et trace ces informations sous forme de graphique.
+
+    Parameters:
+    -----------
+    video_path : str
+        Chemin vers le fichier vidéo à analyser.
+
+    Notes:
+    ------
+    - La fonction utilise une fonction 'calculer_similarite_frames_couleur' pour déterminer la similarité entre deux frames.
+    - Les statistiques glissantes (moyenne et écart-type) sont calculées sur une fenêtre de 100 frames.
+    - Les seuils pour détecter des transitions entre frames peuvent être ajustés.
+    """
+    # Ouvrir le fichier vidéo
+    cap = cv2.VideoCapture(video_path)
+    
+    # Vérifier si la vidéo a été ouverte avec succès
+    if not cap.isOpened():
+        print("Erreur : Impossible d'ouvrir la vidéo.")
+        return
+    
+    # Lire la première frame pour initialiser
+    ret, previous_frame = cap.read()
+    if not ret:
+        print("Erreur lors de la lecture de la première frame.")
+        cap.release()
+        return
+    
+    similarites = []  # Liste pour stocker les similarités entre frames successives
+    frame_number = 1  # Compteur pour les frames
+    
+    # Parcourir les frames de la vidéo
+    while True:
+        ret, current_frame = cap.read()  # Lire la frame suivante
+        if not ret:  # Arrêter si aucune frame n'est lue
+            break
+        
+        # Calculer la similarité entre la frame actuelle et la précédente
+        similarite = calculer_similarite_frames_couleur(previous_frame, current_frame)
+        similarites.append(similarite)
+        
+        # Passer à la frame suivante
+        previous_frame = current_frame
+        frame_number += 1
+    
+    cap.release()  # Libérer les ressources
+
+    # Convertir la liste des similarités en tableau NumPy pour calculs statistiques
+    similarites = np.array(similarites)
+
+    # Initialiser les statistiques glissantes
+    longueur_frame = 100
+    moyenne_similarites = np.zeros(len(similarites- longueur_frame))
+    ecart_type_similarites = np.zeros(len(similarites- longueur_frame))
+    
+    # Calcul des moyennes et écarts-types glissants
+    for i in range(len(similarites)):
+        moyenne_similarites[i] = np.mean(similarites[i:i + longueur_frame])
+        ecart_type_similarites[i] = np.std(similarites[i:i + longueur_frame])
+    
+    # Calcul de la différence entre moyenne et écart-type pondéré
+    seuil = 3.2
+    difference_moyenne_ecart_type = moyenne_similarites - ecart_type_similarites * seuil
+
+    # Tracer les résultats
+    plt.plot(similarites, label='Similarité entre frames')
+    plt.plot(moyenne_similarites, color='r', linestyle='--', label='Moyenne des similarités')
+    plt.plot(difference_moyenne_ecart_type, color='g', linestyle='--', label='Moyenne - Écart type')
+    plt.xlabel('Numéro de frame')
+    plt.ylabel('Similarité')
+    plt.title('Similarité entre frames successives dans la vidéo')
+    plt.legend(loc='lower left')
+    plt.show()
+    
+    # Afficher les statistiques globales dans la console
+    print(f"Moyenne des similarités : {moyenne_similarites.mean():.2f}")
+    print(f"Écart type des similarités : {ecart_type_similarites.mean():.2f}")
+    print(f"Différence (Moyenne - Écart type) : {difference_moyenne_ecart_type.mean():.2f}")
+
+    
+    
+
+# Fonction principale
+def obtenir_graph():
+    video_path = 'pub/Pub_C+_352_288_1.mp4'  # Chemin de la vidéo
+    analyser_video_et_tracer_similarites(video_path)
+
+
 
 
 #region main
+# Ajuster cette partie pour afficher ce que vous voulez en commentant/décommentant les lignes
 if __name__ == "__main__":
+
     video_path = 'pub/Pub_C+_352_288_1.mp4'  # Chemin de la vidéo
+
+    #tracer le graph des similarités :
+    #obtenir_graph() #Obtenir graph des similarités
+
+    # Tracer et visualiser la détection de formes dans les publicités : 
     #video = convertir_video_en_array(video_path)
     #visualiser_detection_forme(video_path)
     #lire_et_tracer_contours(video_path)
-    
-    video = convertir_video_en_array(video_path)
-    print(f"La vidéo est de longueur {len(video)} et les frames sont de shape {video[0].shape}")
-    video_standart = standardize_video_color(video)
-    segmentation_spot_pub(video_standart)
 
-    
+
+    # Détecter la segmentation, le nombre de frames 
+    #video = convertir_video_en_array(video_path)
+    #print(f"La vidéo est de longueur {len(video)} et les frames sont de shape {video[0].shape}")
+    #video_standart = standardize_video_color(video)
+    #segmentation_spot_pub(video_standart)
+
+    # Détection des transitions et comparaison à la vérité terrain
+    video = convertir_video_en_array(video_path)
     similarite_couleur = calculer_similarite_couleur(video)
     video_contour = tracer_contours(video)
     similarite_forme = calculer_similarite_forme(video_contour)
-    #play_video(video_contour)
     silent = False
-    detection_transition(similarite_couleur+similarite_forme, silent)
     simil_couleur_normal = (similarite_couleur-np.mean(similarite_couleur))/np.std(similarite_couleur)
     simil_forme_normal = (similarite_forme-np.mean(similarite_forme))/np.std(similarite_forme)
-    
-    #detection_transition_list(simil_couleur_normal+simil_forme_normal)
-    #comparison(simil_couleur_normal+simil_forme_normal)
-    trace_similarites(simil_couleur_normal+simil_forme_normal)
-    
-    
+    comparison(simil_couleur_normal+simil_forme_normal)

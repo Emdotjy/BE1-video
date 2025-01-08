@@ -1,7 +1,17 @@
 /aaa.odt
 /BE1-video.py
 /BE1_Traitement_et_analyse_des_données_visuelles_et_sonores 2020-21.pdf
-/_pycache_
+/__pycache__
 _pycache_
 /utils.cpython-312.pyc
 /_pycache_/utils.cpython-312.pyc
+/bdd
+interface_reconnaissance_video.cpython-312.pyc
+reconnaissance_sequence.cpython-312.pyc
+segmentation_video.cpython-312.pyc
+__pycache__/interface_reconnaissance_video.cpython-312.pyc
+__pycache__/reconnaissance_sequence.cpython-312.pyc
+__pycache__/segmentation_video.cpython-312.pyc
+/__pycache__/interface_reconnaissance_video.cpython-312.pyc
+/__pycache__/reconnaissance_sequence.cpython-312.pyc
+/__pycache__/segmentation_video.cpython-312.pyc

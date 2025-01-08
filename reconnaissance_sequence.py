@@ -165,6 +165,37 @@ def segmentation_spot_pub(video):
 
     return pub_list
 
+def detection_transition(similarites, silent): 
+
+    # calcul moyenne et écart type glissant
+    longueur_frame = 100
+    moyenne_similarites=np.zeros(len(similarites))
+    ecart_type_similarites=np.zeros(len(similarites))
+    for i in range(len(similarites)-longueur_frame):
+        moyenne_similarites[i] = np.mean(similarites[i:i+longueur_frame])
+        ecart_type_similarites[i] = np.std(similarites[i:i+longueur_frame])
+        
+    # Différence entre la moyenne et l'écart type
+    seuil = 3
+    difference_moyenne_ecart_type = moyenne_similarites - seuil*ecart_type_similarites
+    
+    #'''
+    frame_transition = similarites < difference_moyenne_ecart_type
+    frame_trasition_numbers =[]
+    print(f"on a détécté {sum(frame_transition)} frames de transition")
+    for i in range(len(frame_transition)):
+        if frame_transition[i]:
+            frame_trasition_numbers.append(i)
+            #on supprime les éventuelles frames de transitions succéssives
+            j = 1
+            while j +i <= len(frame_transition) and frame_transition[i+j]:
+                frame_transition[i+j] = False
+                j+=1
+            if not silent:     
+                afficher_frame_avec_timecode(video, i, fps=24)
+
+
+    return frame_trasition_numbers
 
 def detection_transitions_from_pub(video):
     """
@@ -274,6 +305,7 @@ def add_pub_to_bdd(pub):
 
     # Enregistre chaque image représentative dans le dossier
     for num_image, image in enumerate(rpz_images):
+        print(f"Type: {type(image)}, Shape: {getattr(image, 'shape', 'N/A')}")
         cv2.imwrite(pub_path + f'/sequence_n{num_image + 1}.png', image)
 
     # Gestion des métadonnées
@@ -467,7 +499,7 @@ def recognise_pub_in_bdd(video):
 
     # Affiche les distances et le meilleur résultat
     print(distances_to_pubs_in_bdd)
-    print(f"the best fit within the database was with pub was found with {best_fit_path}, with a distance of {distances_to_pubs_in_bdd[best_fit_path]}")
+    print(f"the best fit within the database was with pub was found with {best_fit_path}")
 
           
 
@@ -475,7 +507,7 @@ def recognise_pub_in_bdd(video):
 if __name__ == "__main__":
 
 
-    video_path = 'Pub_C+_352_288_1.mp4'  # Chemin de la vidéo
+    video_path = 'pub/Pub_C+_352_288_1.mp4'  # Chemin de la vidéo
     video = convertir_video_en_array(video_path)
     video_standart = standardize_video_color(video)
     pub_list = segmentation_spot_pub(video_standart)
@@ -483,10 +515,10 @@ if __name__ == "__main__":
 
     
     # à décommenter une fois pour crééer la base de données, puis à recommenter
-    for pub in pub_list:
-        add_pub_to_bdd(pub)
+    #for pub in pub_list:
+    #    add_pub_to_bdd(pub)
 
-    video_test_path = 'Pub_C+_176_144.mp4'    
+    video_test_path = 'pub/Pub_C+_352_288_2_.mp4'    
     video_test = standardize_video_color(convertir_video_en_array(video_test_path))
     pub_list_test = segmentation_spot_pub(video_test)
 
